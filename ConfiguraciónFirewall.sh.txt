@@ -1,0 +1,56 @@
+﻿#!/bin/sh 
+# Script cortafuegos.sh para la configuración de iptables 
+# 
+# Primero borramos todas las reglas previas que puedan existir
+ iptables -F 
+ iptables -X 
+ iptables -Z 
+ iptables -t nat -F 
+ 
+# Después definimos que la politica por defecto sea ACEPTAR 
+iptables -P INPUT ACCEPT 
+iptables -P OUTPUT ACCEPT 
+iptables -P FORWARD ACCEPT
+iptables -t nat -P PREROUTING ACCEPT
+iptables -t nat -P POSTROUTING ACCEPT 
+ 
+# Para evitar errores en el sistema, debemos aceptar
+# todas las comunicaciones por la interfaz lo (localhost) 
+iptables -A INPUT -i lo -j ACCEPT 
+ 
+# Aceptamos las comunicaciones que nos interesan y luego denegamos el resto. 
+ 
+# Ejemplo: Denegamos acceso al aula 1 
+iptables -A FORWARD -s 10.0.1.0/24 -j DROP 
+ 
+# Aceptamos SMTP, POP3 y FTP (correo electrónico y ftp) 
+iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 25 -j ACCEPT
+iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 110 -j ACCEPT
+iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 20 -j ACCEPT 
+iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 21 -j ACCEPT 
+ 
+# HTTP y HTTPS no es necesario porque nuestro servidor será servidor proxy 
+# Dejamos comentadas las líneas, por si algún día las necesitamos 
+#iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 80 -j ACCEPT
+#iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 443 -j ACCEPT 
+ 
+# DNS no es necesario porque nuestro servidor será servidor DNS 
+# Dejamos comentadas las líneas (tcp y udp), por si algún día las necesitamos
+ #iptables -A FORWARD -s 10.0.0.0/8 -p tcp --dport 53 -j ACCEPT 
+ #iptables -A FORWARD -s 10.0.0.0/8 -p udp --dport 53 -j ACCEPT 
+ 
+# Al PC del Director le damos acceso a todo (cliente VIP) 
+iptables -A FORWARD -s 10.0.0.7 -j ACCEPT 
+ 
+# Denegamos resto de comunicaciones (no funcionará el p2p) 
+iptables -A FORWARD -s 10.0.0.0/8 -j DROP 
+ 
+# Hacemos NAT si IP origen 10.0.0.0/8 y salen por eth0
+ iptables -t nat -A POSTROUTING -s 10.0.0.0/8 -o eth0 -j MASQUERADE  
+ 
+# Activamos el enrutamiento
+echo 1 > /proc/sys/net/ipv4/ip_forward 
+ 
+# Comprobamos cómo quedan las reglas 
+iptables -L –n 
+ 
