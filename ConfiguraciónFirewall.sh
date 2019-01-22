@@ -3,7 +3,6 @@
 # 
 # Primero borramos todas las reglas previas que puedan existir
  iptables -F 
-
  
 # Después definimos que la politica por defecto sea ACEPTAR 
 iptables -P INPUT ACCEPT 
